@@ -1,0 +1,146 @@
+\documentclass[11pt]{article}
+    \usepackage[utf8]{inputenc}
+    \usepackage[margin=1in]{geometry}
+    \usepackage[english]{babel}
+    \usepackage{minted}
+    \usepackage{graphicx}
+    \usepackage{anyfontsize}
+    \usepackage{amsmath}
+    \usepackage{amsthm}
+    \usepackage{enumitem}
+    \usepackage[colorlinks]{hyperref}
+
+    \hypersetup{urlcolor=blue, citecolor=black}
+    \urlstyle{same}
+
+    \theoremstyle{definition}
+    \newcommand{\inline}{\mintinline{scheme}}
+    \newtheorem{exe}{Exercise}[section]
+    \newtheorem{sol}{Solution}[section]
+
+    \title{Solutions to SICP
+    \vfill
+    {\fontsize{80}{0}\selectfont \[\lambda \]}
+    \vfill}
+    \date{November 2017}
+    \author{Bernardo Meurer}
+
+\begin{document}
+\maketitle
+\newpage
+\section{Building Abstractions with Procedures}
+\begin{exe}
+    Below is a sequence of expressions. What is the result printed by the interpreter in response to each expression? Assume that the sequence is to be evaluated in the order in which it is presented.
+    \begin{enumerate}[label=\alph*.]
+        \item \inline{10}
+        \item \inline{(+ 5 3 4)}
+        \item \inline{(- 9 1)}
+        \item \inline{(/ 6 2)}
+        \item \inline{(+ (* 2 4) (- 4 6))}
+        \item \inline{(define a 3)}
+        \item \inline{(define b (+ a 1))}
+        \item \inline{(+ a b (* a b))}
+        \item \inline{(= a b)}
+        \item \begin{minted}{scheme}
+(if (and (> b a) (< b (* a b)))
+    b
+    a)
+        \end{minted}
+        \item \begin{minted}{scheme}
+(cond ((= a 4) 6)
+      ((= b 4) (+ 6 7 a))
+      (else 25))
+        \end{minted}
+
+
+        \item \inline{(+ 2 (if (> b a) b a))}
+        \item \begin{minted}{scheme}
+(* (cond ((> a b) a)
+         ((< a b) b)
+         (else -1))
+   (+ a 1))
+        \end{minted}
+    \end{enumerate}
+\end{exe}
+\begin{sol}
+    \begin{enumerate}[label=\alph*.]
+        \item \inline{10}
+        \item \inline{12}
+        \item \inline{8}
+        \item \inline{3}
+        \item \inline{6}
+        \item \inline{ }
+        \item \inline{ }
+        \item \inline{19}
+        \item \inline{#f}
+        \item \inline{4}
+        \item \inline{16}
+        \item \inline{6}
+        \item \inline{16}
+    \end{enumerate}
+\end{sol}
+
+\begin{exe}
+    Translate the following expression into prefix form
+    \[
+    \frac{5 + 4 + (2 - (3 - (6 + \frac{4}{3})))}{3(6 - 2)(2 - 7)}
+    \]
+\end{exe}
+\begin{sol}
+    \inline{(/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 3))))) (* 3 (- 6 2) (- 2 7)))}
+\end{sol}
+\begin{exe}
+    Define a procedure that takes three numbers as arguments and returns the sum of the squares of the two larger numbers.
+\end{exe}
+\begin{sol} Using composite procedures:
+    \begin{minted}{lisp}
+(define (square x)
+    (* x x ))
+
+(define (sum-of-squares x y)
+    (+ (square x) (square y)))
+
+(define (>= x y)
+    (not (< x y)))
+
+(define (foo x y z)
+    (cond
+        ((and (>= x y) (>= y z)) (sum-of-squares x y))
+        ((and (>= y x) (>= x z)) (sum-of-squares x y))
+        ((and (>= x y) (>= z y)) (sum-of-squares x z))
+        (else (sum-of-squares y z))
+    )
+)
+    \end{minted}
+\end{sol}
+\begin{exe}
+    Observe that our model of evaluation allows for combinations whose operators are compound expressions. Use this observation to describe the behavior of the following procedure:
+    \begin{minted}{lisp}
+(define (a-plus-abs-b a b)
+    ((if (> b 0) + -) a b))
+    \end{minted}
+\end{exe}
+\begin{sol}
+    The \inline{if} expression checks whether \inline{b} is positive or not, and sets the operator for the outer procedure accordingly. So if \inline{(> b 0)} evaluates to false, then we set the operator to \inline{-}, effectively summing the absolute value of \inline{b}.
+\end{sol}
+\begin{exe}
+    Ben Bitdiddle has invented a test to determine whether the interpreter he is faced with is using applicative-order evaluation or normal-order evaluation. He defines the following two procedures:
+    \begin{minted}{lisp}
+(define (p) (p))
+
+(define (test x y)
+
+(if (= x 0)
+     0
+     y))
+    \end{minted}
+    Then he evaluates the expression
+    \begin{minted}{lisp}
+(test 0 (p))
+    \end{minted}
+    What behavior will Ben observe with an interpreter that uses applicative-order evaluation? What behavior will he observe with an interpreter that uses normal-order evaluation? Explain your answer. (Assume that the evaluation rule for the special form if is the same whether the interpreter is using normal or applicative order: The predicate expression is evaluated first, and the result determines whether to evaluate the consequent or the alternative expression.)
+\end{exe}
+\begin{sol}
+    
+\end{sol}
+\end{document}

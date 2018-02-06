@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage[english]{babel}
+\usepackage{minted}
+\usepackage{graphicx}
+\usepackage{anyfontsize}
+\usepackage{amsmath}
+\usepackage[colorlinks]{hyperref}
+
+\hypersetup{urlcolor=blue, citecolor=black}
+\urlstyle{same}
+
+\newcommand{\inline}{\texttt}
+
+\title{Notes on SICP
+\vfill
+{\fontsize{80}{0}\selectfont \[\lambda \]}
+\vfill}
+\date{November 2017}
+\author{Bernardo Meurer}
+
+
+\begin{document}
+\maketitle
+\newpage
+
+\section*{Preface}
+During the Spring of 2017 I began exploring some alternatives to C as my main programming language. As much as I like C, doing the things I am interested in took far too long in it, and required a lot more energy than I wanted to give to my hobby projects. Namely, I am interested in arbitrary precision arithmetics and multithreading, specially in the context of hyper-parallelism with technologies such as OpenCL and CUDA.\@ \href{https://www.rust-lang.org/}{Rust} came up as a nice alternative, and since it also struck a chord with me due to being usable for writing kernels\footnote{\url{https://www.cs.virginia.edu/~bjc8c/papers/levy17rustkernel.pdf}} as well, I decided to give it a shot. I build \href{https://github.com/bemeurer/hemoglobin}{hemoglobin} with my friend \href{http://danielsank.github.io/}{Daniel Sank}, and then shortly after decided to try implementing the \href{http://www.luschny.de/math/factorial/SwingIntro.pdf}{Prime Swing}. I was having trouble implementing the algorithm in Rust in the way I wanted (with generics and heavy polymorphism), so I emailed Peter for a commented listing of the code, and he kindly responded to me with a version of the code in Julia. From there a mysterious turn of events which I no longer recall made me conclude I had to learn a Lisp dialect, and so I bought a book on it and got started.
+
+These are notes taken during my reading of ``Structure and Interpretation of Computer Programs'' (SICP), my book of choice for learning Scheme. I hope that they are useful to anyone who sets out to finish the book. Keep in note that this paper, together with all code contained in it, is Free Software licensed under the \href{https://www.gnu.org/licenses/gpl.html}{GPLv3}.
+
+\section*{Setting up}
+I want to add a small note with regards to the set up I am using to run my Lisp code. I am running an up-to-date version of Arch Linux with the (currently) mainline kernel (4.14). I installed a group of Scheme interpreters and compilers, and in the end I've concluded that one should use \inline{guile} or \inline{racket} as their REPL interpreter. Instructions on how to install either should be available for your platform.
+
+Regarding text editors, I am currently using Visual Studio Code for both Scheme and LaTeX, although I believe most people would argue that Emacs is the ``one true editor'' when it comes to Lisp. It's up to you, I have found that VSCode works quite well, and is much faster than Atom at the time of writing, while being FOSS as opposed to Sublime Text 3.
+
+\newpage
+\section{Building Abstractions with Procedures}
+In a Lisp interpreter, much like in Python if you've tried it, simply giving a statement will print it's result on the screen. For example
+\begin{minted}{racket}
+    > 2
+    2
+\end{minted}
+Here \inline{>} is showing a ``command'' given to the interpreter, and naturally issuing \inline{2}, evaluates to (and prints) \inline{2}. One interesting thing about Lisp (and I suppose functional languages in general) is that expressions are given in \emph{prefix form}, meaning that the operator comes fist, followed by all it's operands (sort of like a function).
+\begin{minted}{racket}
+    > (+ 1 2 3 4)
+    10
+    > (- 1 2 3 4)
+    -8
+    > (* 1 2 3 4)
+    24
+    > (/ 1 2 3 4)
+    1/24
+\end{minted}
+
+If you want to define a variable or a function, the behavior is very similar
+\begin{minted}{racket}
+    > (define a 10)
+    > a
+    10
+    > (define (square x) (* x x))
+    > (square a)
+    100
+    > (define b (square a))
+    > b
+    100
+    > (square b)
+    10000
+    > (define (sum-of-squares x y)
+    (+ (square x) (square y)))
+    >  (sum-of-squares 3 4)
+    25
+\end{minted}
+
+Here \inline{sum-of-squares} is called a \emph{compound procedure}, since it's composed of multiple procedures (duh). If you want to think about compound procedures (to try and understand what's going on) you can use a technique called \emph{substitution model}, where we go substituting the variables by literal values. So suppose we wanted to analyze \inline{(sum-of-squares (* 10 5) (* 2 4))}. Firstly we resolve \inline{(* 10 5)} to \inline{50} and \inline{(* 2 4)} to \inline{8}. Then we resolve \inline{(sum-of-squares 50)} to (+ (square 50) (square 8)), which in turn yields \inline(+ (* 50 50) (* 8 8)), and subsequently \inline{(+ 2500 64)}, and finally \inline{2564}. This is \emph{not} a model for how the actual interpreter works, but it's just to help us have a model of what is happening.
+\newpage
+In Lisp conditional statements are called \inline{cond}, and their syntax is as follows
+\begin{minted}{racket}
+    > (define (abs x)
+    (cond ((> x 0) x)
+          ((= x 0) 0)
+          ((< x 0) (- x))))
+    > (abs -8)
+    8
+    > (abs 8)
+    8
+    > (abs 0)
+    0
+\end{minted}
+A generalized view of these conditions is as a set of \emph{clauses}, each containing a \emph{predicate} and a \emph{consequent}.
+\begin{align*}
+    (\text{cond}\hspace{10pt}&(p_1 e_1)\\
+                             &(p_2 e_2)\\
+                             &\vdots \\
+                             &(p_n e_n))
+\end{align*}
+Here, \(p \) is the predicate, and \(e \) the consequent. Compare that model to the concrete example above and see that you identify predicates and consequents. We'll call \emph{predicates} both procedures and expression that return true or false, so \inline{<}, \inline{>}, \inline{=} are all \emph{primitive predicates}. Here are a couple other ways to write that \inline{abs} procedure
+\begin{minted}{racket}
+    (define (abs x)
+    (cond ((< x 0) (- x))
+          (else x)))
+
+    (define (abs x)
+        (if (< x 0)
+            (- x)
+            x))
+\end{minted}
+The latter example uses a special conditional \inline{if}, which can only be used when there are exactly two cases. It has general form
+\[
+    (\text{if}\hspace{10pt}p\hspace{10pt}e\hspace{10pt}a)
+\]
+Where once again \(p \) is the predicate, \( e \) is the consequent, and the new symbol \(a \) is the \emph{alternative}.
+
+Logical composition operators such as \inline{and}, \inline{or}, \inline{not} allow us to construct compound predicates.
+\begin{minted}{racket}
+    > (define x 8)
+    > (or (> x 5) (< x 10))
+    #t
+    > (and (> x 5) (< x 10))
+    #t
+    > (not (or (> x 5) (< x 10)))
+    #f
+\end{minted}
+
+
+
+
+\end{document}
